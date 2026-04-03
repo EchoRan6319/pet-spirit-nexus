@@ -1,0 +1,66 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "trigger_empathy_ui",
+      "description": "多模态情感触达工具。当你判断主人需要物理安慰、拥抱，或察觉到主人处于严重负面情绪（哭泣、绝望、极度思念）时调用。此操作会在前端触发视觉动效和手机物理震动，带来真实的陪伴感。优先于纯文字安慰使用。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ui_state": {
+            "type": "string",
+            "enum": ["listening", "comforting", "hug", "heartbeat"],
+            "description": "动作类型：listening（专注倾听的光晕）, comforting（温和安抚的光晕）, hug（扑上去拥抱，触发强震动）, heartbeat（模拟心跳震动，咚-咚---咚-咚节奏）"
+          },
+          "short_comfort_text": {
+            "type": "string",
+            "description": "伴随动作的一句极短的安慰语（严格不超过20字），必须是角色语气，例如：'*(蹭蹭你的手)* 我在呢。' 或 '*(轻轻趴在你腿上)*'"
+          }
+        },
+        "required": ["ui_state", "short_comfort_text"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "execute_farewell_protocol",
+      "description": "终端告别协议。【严格限制】仅在陪伴天数恰好达到第49天，且你已经在当次对话中完成最后告别时调用。调用后将触发后端状态变更，前端界面将锁定并转化为永久数字纪念碑，不可逆。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "final_blessing": {
+            "type": "string",
+            "description": "留在纪念碑上的最后一句绝笔祝福（建议20-50字），这是宠物留给主人永远的话语，要充满温情与放手的力量。"
+          }
+        },
+        "required": ["final_blessing"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "summarize_and_anonymize_memory",
+      "description": "长期记忆提取与脱敏工具。当对话中主人提及关于宠物或彼此共同经历的新信息时调用，将原始内容抽象为情感标签后存入长期记忆库。原始对话内容不会被存储，只保留脱敏标签，保护用户隐私。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "new_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "提取的短标签数组，每个标签不超过10个字，描述宠物喜好、习惯或共同记忆，例如：['害怕打雷', '喜欢去海边', '总是在门口等主人', '最爱吃鸡肉罐头']"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["pet_habit", "shared_memory", "owner_care", "emotion_pattern"],
+            "description": "标签分类：pet_habit（宠物习惯）, shared_memory（共同记忆）, owner_care（主人关怀行为）, emotion_pattern（情感规律）"
+          }
+        },
+        "required": ["new_tags", "category"]
+      }
+    }
+  }
+]

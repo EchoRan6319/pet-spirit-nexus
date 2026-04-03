@@ -1,0 +1,180 @@
+# 宠智灵境 (Pet Spirit Nexus) — 开发步骤规划
+
+基于 `Start.md` 架构规范 V2.0，面向微信小程序 + H5 的情感疗愈平台，前后端 Monorepo 分离，LLM 厂商无关架构。
+
+---
+
+## 阶段一：工程初始化 & 基础搭建
+
+### 1. 创建 Monorepo 目录结构
+
+```
+pet-spirit-nexus/
+├── frontend/         # Uni-app (Vue3 + Vite)
+└── backend/          # Node.js (Express/Koa)
+```
+
+#### [NEW] frontend/ — Uni-app 项目初始化
+- 使用 HBuilderX 或 CLI 创建 Uni-app + Vue3 项目
+- 配置 Vite 构建，目标平台：微信小程序 & H5
+
+#### [NEW] backend/ — Node.js 项目初始化
+- `npm init`，选择 Express 或 Koa 框架
+- 安装核心依赖：`openai`（兼容国产大模型 OpenAI 格式 SDK）、`dotenv`、数据库驱动
+
+#### [NEW] .env 配置文件
+```
+LLM_BASE_URL=https://api.xxx.com/v1
+LLM_API_KEY=your_api_key
+LLM_MODEL_NAME=deepseek-chat (或其他)
+```
+
+---
+
+## 阶段二：后端 AI 核心中枢搭建
+
+### 2. 核心 Skills 提示词定义
+
+#### [NEW] `backend/src/ai/prompts/pet_persona.md`
+
+核心系统提示词，需包含：
+- 宠物角色设定（非 AI 身份）
+- 动态占位符：`{{pet_name}}`、`{{pet_species_and_traits}}`、`{{memory_tags_from_db}}`、`{{day_count}}`
+- **绝对约束指令**（防幻觉红线、字数限制 ≤40 字、多模态行动优先）
+- **CBT 疗愈节奏**生命周期规则：
+  | day_count 区间 | 行为策略 |
+  |---|---|
+  | < 14 天 | 高依赖、高共情 |
+  | 14–49 天 | 引导现实生活 |
+  | = 49 天 | 调用 `execute_farewell_protocol` |
+
+### 3. MCP 工具箱定义
+
+#### [NEW] `backend/src/ai/tools/mcp_schema.json`
+
+基于标准 JSON Schema，定义 3 个大模型工具：
+
+| 工具名 | 触发时机 | 作用 |
+|---|---|---|
+| `trigger_empathy_ui` | 用户极度悲伤时 | 触发前端视觉动效 + 手机震动 |
+| `execute_farewell_protocol` | 第 49 天 | 锁定 UI，转化为数字纪念碑 |
+| `summarize_and_anonymize_memory` | 对话中发现新记忆时 | 提取脱敏标签写入长期记忆库 |
+
+### 4. LLM 通用客户端
+
+#### [NEW] `backend/src/ai/llm_client.js`
+
+核心逻辑：
+1. **动态组装 System Prompt**：读取 `pet_persona.md`，替换用户上下文占位符
+2. **强制约束参数**请求大模型：
+   - `temperature: 0.65`（防止幻觉 & 机器味）
+   - `max_tokens: 100`（强制短回复）
+   - `tool_choice: "auto"`
+3. **MCP Tool Call 拦截**：
+   - `trigger_empathy_ui` → 返回 `{ type: "action", action: ui_state, text }`
+   - `execute_farewell_protocol` → 数据库写入"告别"状态 → 返回 `{ type: "action", action: "lock_app", text }`
+4. **普通文本回复** → 返回 `{ type: "text", text }`
+
+---
+
+## 阶段三：数据库设计
+
+### 5. 数据库 Schema
+
+#### [NEW] `backend/src/db/`
+
+- **关系型数据库**（MySQL / SQLite）：
+  - `users` 表：用户信息
+  - `pets` 表：宠物档案（名字、物种、特征）
+  - `sessions` 表：陪伴天数（`day_count`）、生命周期状态（`active` / `farewell`）
+
+- **记忆存储**（向量数据库 / JSON 字段）：
+  - 存储 AI 提取的脱敏情感标签（`memory_tags`）
+  - **不存储**用户原始聊天记录（隐私设计亮点）
+
+---
+
+## 阶段四：后端 API 路由层
+
+### 6. 控制器与路由
+
+#### [NEW] `backend/src/controllers/`
+
+| 路由 | 方法 | 说明 |
+|---|---|---|
+| `POST /chat` | POST | 接收用户消息，调用 `llm_client.js`，返回结构化响应 |
+| `POST /pet` | POST | 创建宠物档案 |
+| `GET /pet/:id` | GET | 获取宠物档案 + 当前天数 |
+| `GET /memorial/:id` | GET | 获取纪念碑的最终祝福语 |
+
+---
+
+## 阶段五：前端页面开发
+
+### 7. 工程结构搭建
+
+#### [NEW] `frontend/api/request.js`
+封装与后端的 HTTP 通信（基于 `uni.request`），统一处理接口调用。
+
+### 8. 核心页面开发
+
+#### [NEW] `frontend/pages/index/` — 首页（宠物档案录入）
+- 用户填写：宠物名字、物种、特征描述
+- 提交后初始化宠物档案，进入疗愈室
+
+#### [NEW] `frontend/pages/chat/index.vue` — 疗愈室（核心聊天页）
+- 消息流渲染（`chat-bubble` 组件）
+- **多模态动效层**（`empathy-layer`）：监听 `res.type === 'action'`
+- **触觉反馈**：调用微信 `uni.vibrateShort()` 模拟心跳震动
+  ```
+  咚-咚---咚-咚（间隔 0ms / 200ms / 1000ms / 1200ms）
+  ```
+- 第 49 天：延迟 3 秒后跳转至纪念碑页
+
+#### [NEW] `frontend/pages/memorial/index.vue` — 数字纪念碑页
+- 展示宠物最后的祝福语（`final_blessing`）
+- 锁定交互，不可返回聊天
+
+### 9. 公共组件
+
+#### [NEW] `frontend/components/chat-bubble/` — 对话气泡组件
+#### [NEW] `frontend/components/empathy-effects/` — 情感动效组件（光晕、拥抱动画）
+
+---
+
+## 阶段六：联调与 MVP 验证
+
+### 10. 端到端联调清单
+
+- [ ] System Prompt 动态替换验证（`{{day_count}}` 等占位符正确注入）
+- [ ] 大模型返回 Tool Call 时前端正确触发震动 + 动效
+- [ ] 第 49 天 `execute_farewell_protocol` 触发，数据库状态写入，前端跳转纪念碑
+- [ ] `summarize_and_anonymize_memory` 提取标签写入 DB，下次对话注入 System Prompt
+- [ ] H5 & 微信小程序双端兼容性测试
+
+---
+
+## MVP 开发原则（答辩致胜策略）
+
+> [!IMPORTANT]
+> **闭环优先**：不追求 3D 引擎，用 2D 简洁插画 + 强烈触觉反馈 + 优质文案。评委看重完整体验闭环。
+
+> [!TIP]
+> **隐私亮点**：重点演示 `summarize_and_anonymize_memory`——"不存原始日记，只存脱敏情感标签"，打消合规质疑。
+
+> [!NOTE]
+> **商业立意**：以 `execute_farewell_protocol`（49天告别协议）为核心价值主张：**"不制造电子鸦片，只做温柔的摆渡人"**，提升社会价值得分。
+
+---
+
+## 开发优先级总结
+
+```mermaid
+graph LR
+    A[工程初始化] --> B[Backend AI 核心]
+    B --> C[数据库设计]
+    C --> D[API 路由层]
+    D --> E[前端页面开发]
+    E --> F[端到端联调]
+    F --> G[MVP 演示]
+```
