@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+require('./db/database');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,39 +27,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ============================================================
-// 路由挂载（后续阶段接入）
-// ============================================================
-// const chatRouter = require('./controllers/chat');
-// const petRouter = require('./controllers/pet');
-// app.use('/api/chat', chatRouter);
-// app.use('/api/pet', petRouter);
+const userRouter = require('./controllers/user');
+const chatRouter = require('./controllers/chat');
 
-// ============================================================
-// 临时调试路由：直接测试 AI 核心（阶段二验证用）
-// ============================================================
-const { generatePetResponse } = require('./ai/llm_client');
-
-app.post('/api/debug/chat', async (req, res) => {
-  try {
-    const {
-      petName = '豆豆',
-      petSpeciesAndTraits = '金毛犬，活泼爱撒娇，总喜欢咬主人的鞋子',
-      memories = ['害怕打雷', '喜欢去公园', '最爱鸡肉罐头'],
-      dayCount = 3,
-      message = '我今天好想你',
-      chatHistory = [],
-    } = req.body;
-
-    const userContext = { petName, petSpeciesAndTraits, memories, dayCount };
-    const result = await generatePetResponse(userContext, message, chatHistory);
-
-    res.json({ success: true, data: result });
-  } catch (err) {
-    console.error('[Debug Chat Error]', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+app.use('/api/user', userRouter);
+app.use('/api/chat', chatRouter);
 
 // ============================================================
 // 启动

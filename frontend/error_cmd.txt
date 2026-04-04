@@ -1,0 +1,21 @@
+
+> pet-spirit-nexus-frontend@1.0.0 dev:h5
+> uni -p h5
+
+Please note that in running mode, due to log output, sourcemap, and uncompressed source code, the performance and package size are not as good as release mode.
+Vite is compiled on demand, and clicking on an uncompiled page at runtime will compile first and then load, resulting in a slower display, and there is no such problem after release.
+Compiler version: 5.07（vue3）
+Compiling...
+[31mfailed to load config from D:\EchoRan\Documents\GitHub\pet-spirit-nexus\frontend\vite.config.js[39m
+error when starting dev server:
+Error: Cannot find module 'D:\EchoRan\Documents\GitHub\pet-spirit-nexus\frontend\node_modules\@babel\traverse\lib\index.js'. Please verify that the package.json has a valid "main" entry
+    at tryPackage (node:internal/modules/cjs/loader:531:19)
+    at Module._findPath (node:internal/modules/cjs/loader:799:18)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1441:27)
+    at Module._resolveFilename (D:\EchoRan\Documents\GitHub\pet-spirit-nexus\frontend\node_modules\module-alias\index.js:49:29)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1556:12)
+    at require (node:internal/modules/helpers:152:16)
